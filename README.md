@@ -1,6 +1,6 @@
 # Predictdog Skill
 
-Trade on Polymarket, view your portfolio, and check PnL — all from your AI agent.
+Trade on PredictDog, view portfolio/PnL, and inspect supported product surfaces from your AI agent.
 
 This skill connects to the [Predictdog](https://predictdog.xyz) API and works with **Claude Code** and **OpenClaw**.
 
@@ -12,14 +12,22 @@ This skill connects to the [Predictdog](https://predictdog.xyz) API and works wi
 - **Trade recurring crypto rounds** — "buy BTC 5m up", optionally with `tp/sl`
 - **Cancel orders** — list and cancel unfilled limit orders
 - **Claim payouts** — redeem resolved market winnings
+- **Check product status** — rewards, favorites, copy trading, Predict.fun, memecoin, and BTC/ETH 15m auto-trade status
 
 ## Prerequisites
 
 You need a Predictdog API key:
 
 1. Sign up at [predictdog.xyz](https://predictdog.xyz)
-2. Deposit funds into your wallet (Wallet → Deposit)
-3. Go to **Settings → API Keys** and generate a key
+2. Complete wallet setup and deposit funds if you plan to trade
+3. Go to **Settings → API Keys** and generate a key with the scopes your agent needs
+
+Common scopes:
+- `account:read`
+- `portfolio:read`
+- `trade:polymarket`
+- `trade:predict`
+- `trade:memecoin`
 
 Set it as an environment variable:
 
@@ -72,11 +80,15 @@ Once installed, just talk to your agent naturally:
 "buy BTC 5m up tp 0.65 sl 0.35"
 "show my open orders"
 "what's my PnL?"
+"show my rewards"
+"check BTC15m auto-trade status"
 ```
 
-The agent will call the Predictdog API and handle everything — including confirming trades before executing them.
+The agent will call the Predictdog API and handle everything allowed by the skill, including confirming trades before executing them.
 
 For recurring crypto BUY orders on Polymarket, the agent may attach a recurring `strategyContext` with optional TP/SL risk config so the trade is tracked as a recurring crypto strategy entry.
+
+BTC/ETH 15m auto-trade is a persistent strategy system. The skill supports read-only status checks by default. Creating, changing, enabling, pausing, resuming, or deleting strategy tasks requires explicit confirmation of the exact action.
 
 ## API
 

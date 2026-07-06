@@ -1,15 +1,15 @@
 ---
 name: predictdog
-description: "Trade on Polymarket, including recurring crypto rounds with optional TP/SL, view portfolio, check PnL, and search prediction markets via the Predictdog API. Use when the user wants to: search markets (e.g. 'find BTC markets'), place trades (e.g. 'buy $10 Yes on Trump wins', 'buy BTC 5m up tp 0.65 sl 0.35'), view their portfolio or positions, check PnL/analytics, manage open orders, claim resolved positions, or interact with predictdog.xyz. Requires PREDICTDOG_API_KEY configured in environment or provided by user."
+description: "Use the PredictDog API to search markets, view account/portfolio/PnL, place confirmed Polymarket trades including recurring crypto TP/SL entries, inspect or cancel open orders, claim resolved payouts, and read supported product surfaces such as rewards, favorites, Predict.fun, memecoin, copy-trading, and BTC/ETH 15m auto-trade status. Use when the user wants to interact with predictdog.xyz from an AI agent, including requests like 'find BTC markets', 'buy $10 Yes', 'buy BTC 5m up tp 65 sl 35', 'show my portfolio', 'claim winnings', or 'check auto-trade status'. Requires PREDICTDOG_API_KEY configured or provided by the user."
 ---
 
 # Predictdog Skill
 
-Trade prediction markets and manage your portfolio via the Predictdog API.
+Trade prediction markets and manage PredictDog account state via the PredictDog API.
 
 ## Setup
 
-One value required before any API call:
+One value is required before any API call:
 - `PREDICTDOG_API_KEY` — user's API key
 
 Check for this as an environment variable first. If not found, ask the user:
@@ -19,10 +19,21 @@ Check for this as an environment variable first. If not found, ask the user:
 
 ## Authentication
 
-All requests require the header:
+All requests require one of these auth forms:
 ```
 x-api-key: <PREDICTDOG_API_KEY>
 ```
+or
+```
+Authorization: Bearer <PREDICTDOG_API_KEY>
+```
+
+API keys can be scoped. If an endpoint returns `403` with `API key missing required scope: ...`, tell the user which scope is missing and ask them to create or use a key with that scope:
+- `account:read` - account profile and settings reads
+- `portfolio:read` - portfolio, positions, open orders, claimable payouts
+- `trade:polymarket` - Polymarket order, readiness, cancel, fee quote, claim
+- `trade:predict` - Predict.fun trading endpoints
+- `trade:memecoin` - memecoin trading endpoints
 
 ## New User / Not Set Up
 
@@ -30,13 +41,16 @@ If the user doesn't have an account or API key yet, or if any API call returns a
 
 > "To get started, visit **predictdog.xyz** to create an account and deposit funds. Once set up, go to Settings → API Keys to generate your API key."
 
-If the user has an API key but `POST /api/trade/readiness` returns an error:
+If the user has an API key but `POST /api/trade/readiness` returns `ready: false`, summarize `requirements.reason` first, then the failed `checks` fields.
 
-| Error kind | Meaning | Response to user |
+Common readiness codes:
+
+| Code/kind | Meaning | Response to user |
 |-----------|---------|-----------------|
-| `WALLET_NOT_INITIALIZED` | Wallet not set up | "Your wallet isn't set up yet. Visit predictdog.xyz to complete setup." |
-| `INSUFFICIENT_BALANCE` | No USDC to trade | "Your balance is $0. Deposit funds at predictdog.xyz → Wallet → Deposit." |
-| `APPROVALS_PENDING` | Contract approvals needed | "Please complete wallet setup at predictdog.xyz before trading." |
+| `POLYMARKET_DEPOSIT_WALLET_NOT_READY`, `POLYMARKET_SAFE_NOT_READY`, `WALLET_NOT_INITIALIZED` | Trading wallet not ready | "Your trading wallet is not ready yet. Visit predictdog.xyz to complete wallet setup." |
+| `INSUFFICIENT_BALANCE` | Not enough trade collateral or gas token | "You do not have enough balance for this trade. Deposit or top up funds at predictdog.xyz." |
+| `APPROVALS_PENDING` | Contract approvals needed | "Please complete wallet setup or approvals at predictdog.xyz before trading." |
+| `CLOUDFLARE_BLOCKED`, `CLOB_UNAVAILABLE`, `TURNKEY_UNAVAILABLE`, `TX_SUBMISSION_TIMEOUT` | Temporary upstream/backend dependency issue | "Trading is temporarily unavailable. Please retry shortly." |
 
 ## Common Workflows
 
@@ -50,10 +64,12 @@ Show title, outcomes, prices, and volume.
 ### 2. View Portfolio
 ```
 GET /api/trade/open-positions
+GET /api/trade/claimable-positions
 GET /api/auth/me
 ```
 Positions include `cashPnl`, `percentPnl`, `currentPrice`, `avgPrice`, `size`.
 `/api/auth/me` gives wallet address and USDC balance (`proxyBalanceUsd`).
+Claimable payouts are shown separately from open positions and may include settled markets ready to redeem.
 
 ### 3. Check PnL
 Quick summary: use `summary.totalPnl` from `GET /api/trade/open-positions`.
@@ -74,7 +90,7 @@ Before submitting:
   POST /api/trade/readiness
   Body: {
     "venue": "POLYMARKET",
-    "trade": { "tokenId": "...", "side": "BUY"|"SELL", "orderType": "MARKET"|"LIMIT", "amount": 10.00, "limitPrice": 0.65 }
+    "trade": { "tokenId": "...", "side": "BUY", "orderType": "LIMIT", "amount": 10.00, "amountKind": "NOTIONAL", "limitPrice": 0.65 }
   }
   ```
 - Handle readiness errors (see New User / Not Set Up above)
@@ -83,18 +99,24 @@ Before submitting:
 
 ```
 POST /api/trade/order
-Body: { tokenId, side, orderType, amount, limitPrice? }
+Body: { tokenId, side, orderType, amount, amountKind?, limitPrice?, referencePrice?, slippageBps?, expiresAt?, strategyContext? }
 ```
+
+Amount semantics:
+- Default BUY `amount` is USDC notional.
+- Default SELL `amount` is shares.
+- LIMIT BUY may use `amountKind: "SHARES"` when the user specifies shares instead of USDC.
+- MARKET orders may include `referencePrice` and `slippageBps` for price protection.
 
 ### 4a. Recurring Crypto With TP/SL
 
-Recurring crypto is a distinct Polymarket trading surface. Treat queries like these as recurring crypto requests rather than ordinary event trades:
+Recurring crypto single-round entries are a distinct Polymarket trading surface. Treat queries like these as recurring crypto requests rather than ordinary event trades:
 - `buy BTC 5m up`
 - `buy ETH 15m down`
 - `buy SOL hourly up`
 - `buy BNB daily down tp 0.62 sl 0.30`
 
-For recurring crypto BUY orders, you may attach an optional `strategyContext`.
+For recurring crypto BUY orders, attach `strategyContext` when you can resolve the round metadata. This records the entry and arms optional TP/SL exit handling.
 
 Use `strategyContext` only when:
 - venue is `POLYMARKET`
@@ -106,6 +128,8 @@ Optional TP/SL support:
 - Both values are decimal prices in `(0,1)`
 - If both are present, `takeProfitPrice` must be greater than `stopLossPrice`
 - TP/SL is for recurring crypto BUY orders only
+
+Use a generic definition id matching the asset and interval: `polymarket-<asset-lower>-<interval>-directional` (for example `polymarket-btc-5m-directional`, `polymarket-eth-15m-directional`, `polymarket-sol-1h-directional`).
 
 Example `strategyContext`:
 ```json
@@ -130,6 +154,22 @@ Example `strategyContext`:
 
 For user-facing Polymarket summaries, present share prices in cents (`¢`) rather than `$0.xx`.
 
+### 4b. BTC/ETH 15m Auto-Trade Status
+
+BTC/ETH 15m Tail is a long-running auto-trade task system, not a single order. Do not create, update, pause, resume, delete, enable, or disable auto-trade tasks unless the user explicitly asks for that exact action and confirms the final request body.
+
+Safe read-only status endpoints:
+```
+GET /api/auto-trade/btc-15m-tail/status
+GET /api/auto-trade/btc-15m-tail/tasks
+GET /api/auto-trade/btc-15m-tail/decisions?limit=50
+GET /api/auto-trade/eth-15m-tail/status
+GET /api/auto-trade/eth-15m-tail/tasks
+GET /api/auto-trade/eth-15m-tail/decisions?limit=50
+```
+
+When the user asks to "turn on auto trading", "create a BTC15m bot", or similar, explain that this is a persistent strategy task and ask for explicit confirmation before calling any POST/PATCH task or settings endpoint.
+
 ### 5. Cancel an Order
 ```
 GET /api/trade/open-orders   ← list first
@@ -146,8 +186,34 @@ GET /api/trade/open-orders
 ### 7. Claim Resolved Positions
 ```
 GET /api/trade/claimable-positions
+POST /api/trade/claim
 POST /api/trade/claim-batch
 ```
+Confirm with the user before submitting any claim transaction.
+
+### 8. Other Product Reads
+
+Use these for read-only summaries when the user asks:
+```
+GET /api/rewards/summary
+GET /api/rewards/ledger
+GET /api/rewards/tasks/daily
+GET /api/favorites
+GET /api/favorites/markets
+GET /api/copy-trading/tasks
+GET /api/copy-trading/executions
+GET /api/copy-trading/summary
+GET /api/predict/account
+GET /api/predict/readiness
+GET /api/predict/positions
+GET /api/predict/orders
+GET /api/memecoin/tokens
+GET /api/memecoin/portfolio
+GET /api/memecoin/activity
+GET /api/airdrop/poly-score/me
+```
+
+For create/update/execute actions under copy-trading, Predict.fun, memecoin, rewards boxes/gift-codes, favorites, or user settings: show the exact action and wait for explicit user confirmation. For fund movement, use the restrictions below.
 
 ## Restrictions
 
@@ -156,7 +222,9 @@ POST /api/trade/claim-batch
   - `/api/wallet/withdraw-plans`
   - `/api/turnkey/withdraw/*`
 - Always confirm before placing or cancelling any order
+- Always confirm before claiming payouts, executing memecoin/Predict.fun trades, creating persistent auto-trade tasks, or changing copy-trading tasks
 - For deposits and withdrawals, always redirect to predictdog.xyz
+- Do not execute swap routes from this skill unless the user explicitly asks for a swap and confirms the quote.
 
 ## API Reference
 

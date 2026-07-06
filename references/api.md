@@ -1,7 +1,7 @@
 # Predictdog API Reference
 
 Base URL: `https://api.predictdog.xyz`
-Auth header: `x-api-key: $PREDICTDOG_API_KEY`
+Auth header: `x-api-key: $PREDICTDOG_API_KEY` or `Authorization: Bearer $PREDICTDOG_API_KEY`
 
 ---
 
@@ -28,6 +28,20 @@ Use `proxyWalletAddress` for analytics endpoints. Use `proxyBalanceUsd` for bala
 
 If `wallet` is null or `setupStatus` ≠ `COMPLETED`, direct user to predictdog.xyz to complete onboarding.
 
+### API key scopes
+
+API key requests may fail with:
+```json
+{ "ok": false, "error": "API key missing required scope: portfolio:read" }
+```
+
+Known scopes:
+- `account:read`
+- `portfolio:read`
+- `trade:polymarket`
+- `trade:predict`
+- `trade:memecoin`
+
 ---
 
 ## Trading
@@ -41,54 +55,37 @@ Check if user is ready to trade before placing orders. Must include the trade de
   "venue": "POLYMARKET",
   "trade": {
     "tokenId": "string",
-    "side": "BUY" | "SELL",
-    "orderType": "MARKET" | "LIMIT",
+    "side": "BUY",
+    "orderType": "LIMIT",
     "amount": 10.00,
-    "limitPrice": 0.65,
-    "strategyContext": {
-      "definitionId": "polymarket-btc-5m-directional",
-      "executionScopeKey": "btc-updown-5m-1710000000",
-      "eventSlug": "btc-updown-5m-1710000000",
-      "marketId": "market-id",
-      "outcomeLabel": "Up",
-      "riskConfig": {
-        "takeProfitPrice": 0.65,
-        "stopLossPrice": 0.35
-      },
-      "metadata": {
-        "surface": "crypto-recurring",
-        "asset": "BTC",
-        "interval": "5m",
-        "roundStartSec": 1710000000
-      }
-    }
+    "amountKind": "NOTIONAL",
+    "limitPrice": 0.65
   }
 }
 ```
-`limitPrice` is required only for LIMIT orders.
-`strategyContext` is optional. Use it for recurring crypto BUY orders when the trade should be tracked as a recurring crypto strategy entry.
+`limitPrice` is required only for LIMIT orders. `amountKind` is optional; use `"SHARES"` only for LIMIT BUY orders when `amount` means outcome shares instead of USDC notional.
 
-`strategyContext.riskConfig` supports:
+**Success:**
 ```json
 {
-  "takeProfitPrice": 0.65,
-  "stopLossPrice": 0.35
+  "venue": "POLYMARKET",
+  "ready": true,
+  "requirements": { "ready": true, "code": "READY", "reason": null },
+  "checks": {
+    "gasReserve": { "checked": false, "ready": true, "code": "POLYMARKET_FUNDER_RELAY_ACTIVE", "reason": "Polygon Safe outer transactions are broadcast by the backend funder.", "assetSymbol": null, "available": null, "required": null, "amountKind": null, "decimals": null },
+    "balanceSufficiency": { "checked": true, "ready": true, "code": "SUFFICIENT_BALANCE", "reason": null, "assetSymbol": "USDC.e", "available": "42.50", "required": "10.00", "amountKind": "DECIMAL", "decimals": 6 },
+    "feeSufficiency": { "checked": true, "ready": true, "code": "SUFFICIENT_FEE_BALANCE", "reason": null, "assetSymbol": "USDC.e", "available": "42.50", "required": "0.10", "amountKind": "DECIMAL", "decimals": 6 }
+  },
+  "warnings": []
 }
 ```
 
-Constraints:
-- TP/SL is supported for recurring crypto BUY orders only.
-- `takeProfitPrice` and `stopLossPrice` must each be in `(0,1)`.
-- If both are present, `takeProfitPrice` must be greater than `stopLossPrice`.
-
-**Success:** `{ "ok": true }`
-
-**Failure:** `{ "ok": false, "kind": "...", "error": "..." }`
+**Failure:** validation errors may use `{ "ok": false, "kind": "...", "error": "..." }`; readiness failures usually return the same response shape with `ready: false`.
 
 | kind | Action |
 |------|--------|
-| `WALLET_NOT_INITIALIZED` | → predictdog.xyz to complete setup |
-| `INSUFFICIENT_BALANCE` | → predictdog.xyz → Wallet → Deposit |
+| `POLYMARKET_DEPOSIT_WALLET_NOT_READY`, `POLYMARKET_SAFE_NOT_READY`, `WALLET_NOT_INITIALIZED` | → predictdog.xyz to complete setup |
+| `INSUFFICIENT_BALANCE` | → predictdog.xyz → Wallet → Deposit or top up the required asset |
 | `APPROVALS_PENDING` | → predictdog.xyz to approve contracts |
 
 ### POST /api/trade/order
@@ -97,11 +94,19 @@ Place a trade order.
 **Request body:**
 ```json
 {
-  "tokenId": "string",     // CLOB token ID for the outcome
-  "side": "BUY" | "SELL",
-  "orderType": "MARKET" | "LIMIT",
-  "amount": 10.00,         // BUY: USDC amount, SELL: number of shares
-  "limitPrice": 0.65,      // Required for LIMIT orders (0-1 range)
+  "tokenId": "string",
+  "side": "BUY",
+  "orderType": "LIMIT",
+  "eventSlug": "btc-updown-5m-1710000000",
+  "marketId": "market-id",
+  "marketSlug": "market-slug",
+  "marketQuestion": "BTC Up or Down...",
+  "outcomeLabel": "Up",
+  "outcomeIndex": 0,
+  "amount": 10.00,
+  "amountKind": "NOTIONAL",
+  "limitPrice": 0.65,
+  "expiresAt": "2026-07-06T12:00:00Z",
   "strategyContext": {
     "definitionId": "polymarket-btc-5m-directional",
     "executionScopeKey": "btc-updown-5m-1710000000",
@@ -123,8 +128,10 @@ Place a trade order.
 ```
 
 Field notes:
-- `amount` keeps the standard semantics: BUY = USDC amount, SELL = shares.
-- `strategyContext` is optional and intended for recurring crypto BUY orders.
+- `amount` keeps the standard default semantics: BUY = USDC amount, SELL = shares.
+- LIMIT BUY supports `amountKind: "SHARES"` when the user specifies share quantity.
+- MARKET orders may include `referencePrice` and `slippageBps` for slippage protection.
+- `strategyContext` is optional and intended for recurring crypto BUY orders with strategy tracking or TP/SL.
 - For ordinary Polymarket events, omit `strategyContext`.
 - For user-facing Polymarket summaries, format share prices in cents (`¢`) instead of dollars.
 
@@ -137,7 +144,7 @@ Field notes:
 ```json
 {
   "ok": false,
-  "kind": "INSUFFICIENT_BALANCE" | "NO_LIQUIDITY" | "ORDERBOOK_MISSING" | "CLOB_RATE_LIMITED",
+  "kind": "INSUFFICIENT_BALANCE" | "NO_LIQUIDITY" | "ORDERBOOK_MISSING" | "MIN_ORDER_SIZE" | "MARKET_SLIPPAGE_EXCEEDED" | "CLOB_RATE_LIMITED" | "CLOB_UNAVAILABLE" | "CLOUDFLARE_BLOCKED" | "TURNKEY_UNAVAILABLE" | "TX_SUBMISSION_TIMEOUT",
   "error": "Human readable message",
   "retryAfterMs": 5000
 }
@@ -203,7 +210,10 @@ Get unfilled limit orders.
       "price": 0.60,
       "originalSize": 20.0,
       "remainingSize": 20.0,
+      "takeProfitPrice": 0.70,
+      "stopLossPrice": 0.35,
       "createdAt": "2025-01-01T00:00:00Z",
+      "expiresAt": "2025-01-02T00:00:00Z",
       "canCancel": true
     }
   ],
@@ -219,6 +229,15 @@ Claim payout for a resolved position.
 
 ### POST /api/trade/claim-batch
 Batch claim all claimable positions.
+
+### POST /api/trade/fee/quote
+Quote the PredictDog trading fee before a Polymarket order.
+
+### POST /api/trade/exit-plan
+Create a TP/SL exit plan for an existing Polymarket position. Confirm before calling.
+
+### PATCH /api/trade/exit-plan
+Update an existing TP/SL exit plan. Confirm before calling.
 
 ---
 
@@ -272,6 +291,7 @@ Search prediction markets by keyword. Supports any language — input is resolve
 - Queries like `BTC 5m up`, `ETH 15m down`, or `SOL daily up` may resolve to recurring crypto rounds.
 - If the matched event is a recurring crypto round and the user is placing a BUY order, attach a recurring `strategyContext`.
 - If the user also specified TP/SL, place those values inside `strategyContext.riskConfig`.
+- Generic recurring crypto definition ids are `polymarket-<asset>-<interval>-directional`.
 
 ### GET /api/events/aggregated
 Browse top events across Polymarket and Kalshi.
@@ -298,7 +318,7 @@ Browse top events across Polymarket and Kalshi.
 ### GET /api/analytics/user/:address/portfolio-analytics
 Historical PnL and trading statistics. Requires auth (`x-api-key` header).
 
-**Path param:** `address` = user's proxy wallet address (get from `/auth/me`)
+**Path param:** `address` = user's proxy wallet address (get from `/api/auth/me`)
 
 **Response:**
 ```json
@@ -322,9 +342,97 @@ Historical PnL and trading statistics. Requires auth (`x-api-key` header).
 
 ---
 
+## Auto-Trade Read-Only Status
+
+BTC/ETH 15m Tail auto-trade is a persistent strategy task system. Reads are safe; create/update/pause/resume/delete/enable/disable require explicit user confirmation.
+
+### GET /api/auto-trade/btc-15m-tail/status
+### GET /api/auto-trade/eth-15m-tail/status
+Get current user status and settings for the strategy.
+
+### GET /api/auto-trade/btc-15m-tail/tasks
+### GET /api/auto-trade/eth-15m-tail/tasks
+List user strategy tasks.
+
+### GET /api/auto-trade/btc-15m-tail/decisions?limit=50
+### GET /api/auto-trade/eth-15m-tail/decisions?limit=50
+List recent decision records.
+
+### GET /api/auto-trade/btc-15m-tail/shadow-summary
+### GET /api/auto-trade/eth-15m-tail/shadow-summary
+Public shadow-run summary.
+
+Mutation endpoints exist under the same prefixes for `tasks`, `settings`, `enable`, and `disable`. Use them only after showing the exact final action and getting explicit confirmation.
+
+---
+
+## Rewards, Favorites, Copy Trading
+
+Read-only endpoints commonly useful to agents:
+
+- `GET /api/rewards/summary`
+- `GET /api/rewards/ledger`
+- `GET /api/rewards/tasks/daily`
+- `GET /api/rewards/polymarket/user-markets`
+- `GET /api/favorites`
+- `GET /api/favorites/markets`
+- `GET /api/copy-trading/tasks`
+- `GET /api/copy-trading/executions`
+- `GET /api/copy-trading/summary`
+
+Mutation endpoints for rewards claims, boxes, gift codes, favorites, and copy-trading task changes require explicit user confirmation.
+
+---
+
+## Predict.fun
+
+Predict.fun is separate from Polymarket and uses `PREDICT_FUN` readiness/trading semantics.
+
+Read-only:
+- `GET /api/predict/account`
+- `GET /api/predict/readiness`
+- `GET /api/predict/positions`
+- `GET /api/predict/orders`
+- `GET /api/predict/activity`
+- `GET /api/predict/markets`
+- `GET /api/predict/markets/:marketId`
+- `GET /api/predict/markets/:marketId/orderbook`
+
+Mutations:
+- `POST /api/predict/activation/ensure`
+- `POST /api/predict/approvals/ensure`
+- `POST /api/predict/orders`
+- `POST /api/predict/orders/remove`
+
+Confirm before any mutation. Predict.fun readiness can also be checked through:
+```json
+{
+  "venue": "PREDICT_FUN",
+  "trade": { "...": "Predict.fun order body" }
+}
+```
+
+---
+
+## Memecoin
+
+Read-only:
+- `GET /api/memecoin/tokens`
+- `GET /api/memecoin/portfolio`
+- `GET /api/memecoin/activity`
+- `GET /api/memecoin/:swapId`
+
+Quote/execute:
+- `POST /api/memecoin/quote`
+- `POST /api/memecoin/execute`
+
+Use `POST /api/trade/readiness` with `{ "venue": "MEMECOIN", "trade": { "quoteKey": "..." } }` after quote and before execute. Confirm the exact quote and execution before calling execute.
+
+---
+
 ## Wallet / Balance
 
-Balance is available via `/auth/me` → `user.wallet.proxyBalanceUsd` (USDC.e on Polygon).
+Balance is available via `/api/auth/me` → `user.wallet.proxyBalanceUsd` (USDC.e on Polygon).
 
 ### GET /api/funder/pol-balance
 Get POL (gas token) balance.
@@ -338,3 +446,4 @@ The following are off-limits for this skill:
 - `GET /api/wallet/deposit-plans/*` — deposit status
 - `POST /api/wallet/withdraw-plans` — withdrawals
 - `POST /api/turnkey/withdraw/*` — Turnkey withdrawals
+- `POST /api/swap/execute` — swaps unless the user explicitly requested and confirmed a swap quote
