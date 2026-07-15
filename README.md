@@ -1,8 +1,8 @@
-# Predictdog Skill
+# Virae Skill
 
-Trade on PredictDog, view portfolio/PnL, and inspect supported product surfaces from your AI agent.
+Trade on Virae, view portfolio/PnL, and inspect supported product surfaces from your AI agent.
 
-This skill connects to the [Predictdog](https://predictdog.xyz) API and works with **Claude Code** and **OpenClaw**.
+This skill connects to the [Virae](https://www.virae.ai) API and works with **Claude Code** and **OpenClaw**.
 
 ## What You Can Do
 
@@ -16,9 +16,9 @@ This skill connects to the [Predictdog](https://predictdog.xyz) API and works wi
 
 ## Prerequisites
 
-You need a Predictdog API key:
+You need a Virae API key:
 
-1. Sign up at [predictdog.xyz](https://predictdog.xyz)
+1. Sign up at [virae.ai](https://www.virae.ai)
 2. Complete wallet setup and deposit funds if you plan to trade
 3. Go to **Settings → API Keys** and generate a key with the scopes your agent needs
 
@@ -84,7 +84,7 @@ Once installed, just talk to your agent naturally:
 "check BTC15m auto-trade status"
 ```
 
-The agent will call the Predictdog API and handle everything allowed by the skill, including confirming trades before executing them.
+The agent will call the Virae API and handle everything allowed by the skill, including confirming trades before executing them.
 
 For recurring crypto BUY orders on Polymarket, the agent may attach a recurring `strategyContext` with optional TP/SL risk config so the trade is tracked as a recurring crypto strategy entry.
 
@@ -92,9 +92,9 @@ BTC/ETH 15m auto-trade is a persistent strategy system. The skill supports read-
 
 ## API
 
-This skill uses the Predictdog REST API at `https://api.predictdog.xyz`. See [`references/api.md`](references/api.md) for the full endpoint reference.
+This skill uses the Virae REST API at `https://api.predictdog.xyz`. See [`references/api.md`](references/api.md) for the full endpoint reference.
 
-Deposits and withdrawals are intentionally disabled in this skill — use [predictdog.xyz](https://predictdog.xyz) for fund management.
+Deposits and withdrawals are intentionally disabled in this skill — use [virae.ai](https://www.virae.ai) for fund management.
 
 ## License
 

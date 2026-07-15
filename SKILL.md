@@ -1,11 +1,11 @@
 ---
 name: predictdog
-description: "Use the PredictDog API to search markets, view account/portfolio/PnL, place confirmed Polymarket trades including recurring crypto TP/SL entries, inspect or cancel open orders, claim resolved payouts, and read supported product surfaces such as rewards, favorites, Predict.fun, memecoin, copy-trading, and BTC/ETH 15m auto-trade status. Use when the user wants to interact with predictdog.xyz from an AI agent, including requests like 'find BTC markets', 'buy $10 Yes', 'buy BTC 5m up tp 65 sl 35', 'show my portfolio', 'claim winnings', or 'check auto-trade status'. Requires PREDICTDOG_API_KEY configured or provided by the user."
+description: "Use the Virae API to search markets, view account/portfolio/PnL, place confirmed Polymarket trades including recurring crypto TP/SL entries, inspect or cancel open orders, claim resolved payouts, and read supported product surfaces such as rewards, favorites, Predict.fun, memecoin, copy-trading, and BTC/ETH 15m auto-trade status. Use when the user wants to interact with virae.ai from an AI agent, including requests like 'find BTC markets', 'buy $10 Yes', 'buy BTC 5m up tp 65 sl 35', 'show my portfolio', 'claim winnings', or 'check auto-trade status'. Requires PREDICTDOG_API_KEY configured or provided by the user."
 ---
 
-# Predictdog Skill
+# Virae Skill
 
-Trade prediction markets and manage PredictDog account state via the PredictDog API.
+Trade prediction markets and manage Virae account state via the Virae API.
 
 ## Setup
 
@@ -13,7 +13,7 @@ One value is required before any API call:
 - `PREDICTDOG_API_KEY` — user's API key
 
 Check for this as an environment variable first. If not found, ask the user:
-> "Please provide your Predictdog API key. You can generate one at predictdog.xyz → Settings → API Keys."
+> "Please provide your Virae API key. You can generate one at virae.ai → Settings → API Keys."
 
 **Base URL is fixed:** `https://api.predictdog.xyz` — do not ask the user for this.
 
@@ -39,7 +39,7 @@ API keys can be scoped. If an endpoint returns `403` with `API key missing requi
 
 If the user doesn't have an account or API key yet, or if any API call returns a wallet setup error (`setupStatus` ≠ `COMPLETED`), direct them to the website:
 
-> "To get started, visit **predictdog.xyz** to create an account and deposit funds. Once set up, go to Settings → API Keys to generate your API key."
+> "To get started, visit **virae.ai** to create an account and deposit funds. Once set up, go to Settings → API Keys to generate your API key."
 
 If the user has an API key but `POST /api/trade/readiness` returns `ready: false`, summarize `requirements.reason` first, then the failed `checks` fields.
 
@@ -47,9 +47,9 @@ Common readiness codes:
 
 | Code/kind | Meaning | Response to user |
 |-----------|---------|-----------------|
-| `POLYMARKET_DEPOSIT_WALLET_NOT_READY`, `POLYMARKET_SAFE_NOT_READY`, `WALLET_NOT_INITIALIZED` | Trading wallet not ready | "Your trading wallet is not ready yet. Visit predictdog.xyz to complete wallet setup." |
-| `INSUFFICIENT_BALANCE` | Not enough trade collateral or gas token | "You do not have enough balance for this trade. Deposit or top up funds at predictdog.xyz." |
-| `APPROVALS_PENDING` | Contract approvals needed | "Please complete wallet setup or approvals at predictdog.xyz before trading." |
+| `POLYMARKET_DEPOSIT_WALLET_NOT_READY`, `POLYMARKET_SAFE_NOT_READY`, `WALLET_NOT_INITIALIZED` | Trading wallet not ready | "Your trading wallet is not ready yet. Visit virae.ai to complete wallet setup." |
+| `INSUFFICIENT_BALANCE` | Not enough trade collateral or gas token | "You do not have enough balance for this trade. Deposit or top up funds at virae.ai." |
+| `APPROVALS_PENDING` | Contract approvals needed | "Please complete wallet setup or approvals at virae.ai before trading." |
 | `CLOUDFLARE_BLOCKED`, `CLOB_UNAVAILABLE`, `TURNKEY_UNAVAILABLE`, `TX_SUBMISSION_TIMEOUT` | Temporary upstream/backend dependency issue | "Trading is temporarily unavailable. Please retry shortly." |
 
 ## Common Workflows
@@ -223,7 +223,7 @@ For create/update/execute actions under copy-trading, Predict.fun, memecoin, rew
   - `/api/turnkey/withdraw/*`
 - Always confirm before placing or cancelling any order
 - Always confirm before claiming payouts, executing memecoin/Predict.fun trades, creating persistent auto-trade tasks, or changing copy-trading tasks
-- For deposits and withdrawals, always redirect to predictdog.xyz
+- For deposits and withdrawals, always redirect to virae.ai
 - Do not execute swap routes from this skill unless the user explicitly asks for a swap and confirms the quote.
 
 ## API Reference

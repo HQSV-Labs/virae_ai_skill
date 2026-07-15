@@ -1,4 +1,4 @@
-# Predictdog API Reference
+# Virae API Reference
 
 Base URL: `https://api.predictdog.xyz`
 Auth header: `x-api-key: $PREDICTDOG_API_KEY` or `Authorization: Bearer $PREDICTDOG_API_KEY`
@@ -26,7 +26,7 @@ Get current user info and wallet balance.
 ```
 Use `proxyWalletAddress` for analytics endpoints. Use `proxyBalanceUsd` for balance display.
 
-If `wallet` is null or `setupStatus` ≠ `COMPLETED`, direct user to predictdog.xyz to complete onboarding.
+If `wallet` is null or `setupStatus` ≠ `COMPLETED`, direct user to virae.ai to complete onboarding.
 
 ### API key scopes
 
@@ -84,9 +84,9 @@ Check if user is ready to trade before placing orders. Must include the trade de
 
 | kind | Action |
 |------|--------|
-| `POLYMARKET_DEPOSIT_WALLET_NOT_READY`, `POLYMARKET_SAFE_NOT_READY`, `WALLET_NOT_INITIALIZED` | → predictdog.xyz to complete setup |
-| `INSUFFICIENT_BALANCE` | → predictdog.xyz → Wallet → Deposit or top up the required asset |
-| `APPROVALS_PENDING` | → predictdog.xyz to approve contracts |
+| `POLYMARKET_DEPOSIT_WALLET_NOT_READY`, `POLYMARKET_SAFE_NOT_READY`, `WALLET_NOT_INITIALIZED` | → virae.ai to complete setup |
+| `INSUFFICIENT_BALANCE` | → virae.ai → Wallet → Deposit or top up the required asset |
+| `APPROVALS_PENDING` | → virae.ai to approve contracts |
 
 ### POST /api/trade/order
 Place a trade order.
@@ -231,7 +231,7 @@ Claim payout for a resolved position.
 Batch claim all claimable positions.
 
 ### POST /api/trade/fee/quote
-Quote the PredictDog trading fee before a Polymarket order.
+Quote the Virae trading fee before a Polymarket order.
 
 ### POST /api/trade/exit-plan
 Create a TP/SL exit plan for an existing Polymarket position. Confirm before calling.

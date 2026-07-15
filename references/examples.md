@@ -1,15 +1,15 @@
-# Predictdog Skill — Example Interactions
+# Virae Skill — Example Interactions
 
 ---
 
 ## New User Onboarding
 
-**User:** "I want to trade on Predictdog" (no API key configured)
+**User:** "I want to trade on Virae" (no API key configured)
 
 ```
-To get started with Predictdog:
+To get started with Virae:
 
-1. Visit predictdog.xyz to create an account
+1. Visit virae.ai to create an account
 2. Deposit USDC into your wallet (Wallet → Deposit)
 3. Go to Settings → API Keys to generate your API key
 4. Set PREDICTDOG_API_KEY in your environment
@@ -27,7 +27,7 @@ Your wallet isn't ready for trading yet.
 
 Reason: <requirements.reason or failed check reason>
 
-Please visit predictdog.xyz to complete wallet setup, approvals, or deposit the required funds.
+Please visit virae.ai to complete wallet setup, approvals, or deposit the required funds.
 
 Once this is ready, come back and I'll execute the trade after you confirm it.
 ```
@@ -308,5 +308,5 @@ For Predict.fun order creation/removal or memecoin execute calls, show the exact
 | `CLOUDFLARE_BLOCKED` | "The backend request was blocked upstream. This is not an API key problem." |
 | `TURNKEY_UNAVAILABLE` | "Turnkey signing is temporarily unavailable. Please retry shortly." |
 | `TX_SUBMISSION_TIMEOUT` | "Transaction submission timed out at the RPC provider. Please retry shortly." |
-| API key missing required scope | "This API key is missing `<scope>`. Create or use a key with that scope at predictdog.xyz → Settings → API Keys." |
+| API key missing required scope | "This API key is missing `<scope>`. Create or use a key with that scope at virae.ai → Settings → API Keys." |
 | invalid TP/SL | "TP/SL is only supported for recurring crypto BUY orders, and TP must be greater than SL." |
