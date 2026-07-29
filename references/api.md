@@ -41,6 +41,9 @@ Known scopes:
 - `trade:polymarket`
 - `trade:predict`
 - `trade:memecoin`
+- `auto_trade:read`
+- `auto_trade:manage`
+- `auto_trade:activate` (live activation also requires `trade:polymarket`)
 
 ---
 
@@ -342,27 +345,138 @@ Historical PnL and trading statistics. Requires auth (`x-api-key` header).
 
 ---
 
-## Auto-Trade Read-Only Status
+## Auto Trade
 
-BTC/ETH 15m Tail auto-trade is a persistent strategy task system. Reads are safe; create/update/pause/resume/delete/enable/disable require explicit user confirmation.
+Use these strategy-neutral endpoints for API keys and Skills. Supported live task keys are `btc-15m-tail`, `eth-15m-tail`, and `musk-tweet-count`; `weather-temperature` is simulation-only. Tasks belong to the authenticated user.
 
-### GET /api/auto-trade/btc-15m-tail/status
-### GET /api/auto-trade/eth-15m-tail/status
-Get current user status and settings for the strategy.
+### GET /api/auto-trade/strategies
 
-### GET /api/auto-trade/btc-15m-tail/tasks
-### GET /api/auto-trade/eth-15m-tail/tasks
-List user strategy tasks.
+Lists strategy capabilities, parameter groups, service-wide availability, and whether live task creation is supported.
 
-### GET /api/auto-trade/btc-15m-tail/decisions?limit=50
-### GET /api/auto-trade/eth-15m-tail/decisions?limit=50
-List recent decision records.
+### GET /api/auto-trade/strategies/:strategyKey/simulation
 
-### GET /api/auto-trade/btc-15m-tail/shadow-summary
-### GET /api/auto-trade/eth-15m-tail/shadow-summary
-Public shadow-run summary.
+Returns the available simulation/shadow summary for the strategy.
 
-Mutation endpoints exist under the same prefixes for `tasks`, `settings`, `enable`, and `disable`. Use them only after showing the exact final action and getting explicit confirmation.
+### POST /api/auto-trade/tasks/validate
+
+Validates and normalizes a prospective task without creating it.
+
+```json
+{
+  "strategyKey": "btc-15m-tail",
+  "name": "Conservative BTC tail",
+  "perOrderAmountUsd": 10,
+  "orderSizingMode": "FIXED_ORDER_AMOUNT",
+  "entryConfig": {
+    "askCap": 0.82,
+    "minEntryAsk": 0.55
+  },
+  "riskConfig": {
+    "dailyLossStopUsd": 30,
+    "maxTradesPerDay": 8
+  },
+  "startImmediately": false
+}
+```
+
+The response includes `normalized` parameters and `activation` availability. Validation requires `auto_trade:read` and does not mutate state.
+
+Allowed task fields:
+
+- `name`: string, 1–120 characters, or `null`
+- `perOrderAmountUsd`: 1–100
+- `orderSizingMode`: `FIXED_ORDER_AMOUNT` or `TASK_BANKROLL`
+- `minRemainingBankrollUsd`: 0–100000 or `null`; valid only for `TASK_BANKROLL`
+- `entryConfig`: strategy-specific fields below
+- `riskConfig`: strategy-specific fields below
+- `startImmediately`: create/validate only; defaults to `false`
+
+BTC/ETH 15m Tail `entryConfig`:
+
+- Price/signal: `askCap` (0.01–0.999), `minEntryAsk` (0.01–0.999), `edgeGateEnabled`, `minEdgeBps` (0–2000), `distanceGateEnabled`, `minDistancePercent` (0–5), `absoluteDistanceGateEnabled`, `minAbsoluteDistanceUsd` (0.01–10000)
+- Stop behavior: `directionFlipStopEnabled`, `distanceCollapseStopEnabled`, `distanceCollapseStopPercent` (0–100), `orderbookStopEnabled`, `orderbookStopPrice` (0.01–0.99 or `null`), `orderbookStopSlippageBps` (10–2000)
+- Entry timing: `entryWindowStartSeconds` and `entryWindowEndSeconds` (1–300), plus up to 12 `entryWindows` entries containing `secondsToEndMin` (1–300) and `minDistanceBps` (0–2000)
+- Liquidity/orders: `maxSpread` and `maxSpreadHard` (0.001–0.05), `minLiquidityClob` (≥0), `depthMultiplier` (1–20), `entryOrderChaseEnabled`, `cancelOpenOrdersEnabled`, `cancelAfterMs` (1000–120000), `maxChaseTicks` (0–2)
+- `maxNotionalUsd` (1–100) is accepted inside `entryConfig`, but must equal `perOrderAmountUsd` when both are supplied
+
+BTC/ETH `riskConfig`: `dailyLossStopUsd` (1–10000), `dailyLossStopBehavior` (`AUTO_RESUME_NEXT_UTC_DAY` or `REQUIRE_MANUAL_RESUME`), `maxTaskNetLossUsd` (1–100000 or `null`), `consecutiveLossStop` (1–20), and `maxTradesPerDay` (1–200).
+
+Musk Tweet Count `entryConfig`:
+
+- Orders/allocation: `maxNotionalUsd`, `minOrderNotionalUsd` (1–100), `minExpectedProfitUsd` (0–100), `entryOrderTtlSeconds` (10–300), and allocation percentages `tailNoAllocationPct`, `lateDirectionalAllocationPct`, `lotteryAllocationPct`, `lotteryMaxSingleTradePct`, `nextMarketPrepositionPct` (0–1)
+- Tail/directional signals: `lowTailBoundaryBufferTweets` (1–40), `lowTailMinAsk`/`highTailMinAsk` (0.01–0.99), `lowTailMaxAsk`/`highTailMaxAsk` (0.01–0.999), `highTailMaxRemainingHours` (1–48), `directionalMinRemainingHours` (0–24), `directionalMaxRemainingHours` (0.5–48)
+- Burst/next market: `lotteryBurstRate30m` (0–100), `lotteryBurstRate60m` (0–200), `nextMarketPrepositionMaxHours` (1–96)
+
+Musk `riskConfig`: `dailyLossStopUsd` (1–10000), `maxTaskNetLossUsd` (1–100000 or `null`), and `maxTradesPerDay` (1–200).
+
+Unknown fields are rejected. Effective cross-field constraints are checked for both creation and patching. Runtime-only fields such as `mode`, internal hedge controls, global controls, and shadow-run settings are not writable through this API.
+
+### POST /api/auto-trade/tasks
+
+Creates a task. The request is the validation body above. `startImmediately` defaults to `false`; omit it or keep it false to create a paused task. Requires `auto_trade:manage`.
+
+Starting immediately additionally requires `auto_trade:activate` plus `trade:polymarket` and geographic eligibility.
+
+### GET /api/auto-trade/tasks
+
+Query parameters:
+
+- `strategyKey` — optional supported live strategy key
+- `limit` — 1 to 100
+- `cursor` — opaque task cursor from the prior response
+- `includeArchived` — `true` to include stopped/deleted records
+
+### GET /api/auto-trade/tasks/:taskId
+
+Returns one owned task, including archived tasks.
+
+### PATCH /api/auto-trade/tasks/:taskId
+
+Updates one or more task fields. Allowed top-level fields are `name`, `perOrderAmountUsd`, `orderSizingMode`, `minRemainingBankrollUsd`, `entryConfig`, and `riskConfig`. Unknown fields and empty patches are rejected. Lifecycle changes use the pause/resume endpoints.
+
+### POST /api/auto-trade/tasks/:taskId/pause
+### POST /api/auto-trade/tasks/:taskId/resume
+### DELETE /api/auto-trade/tasks/:taskId
+
+Pause and delete require `auto_trade:manage`. Resume also requires `auto_trade:activate`, `trade:polymarket`, geographic eligibility, and service-wide live-trading availability.
+
+### GET /api/auto-trade/tasks/:taskId/decisions
+
+Supports `limit`, `cursor`, and optional `reasonCode`.
+
+### GET /api/auto-trade/tasks/:taskId/audit-log
+
+Supports `limit` and `cursor`. API-originated changes record the actor type, API key id, request id, and before/after values.
+
+### GET /api/auto-trade/tasks/:taskId/pnl
+
+Returns task-scoped PnL history.
+
+### GET /api/auto-trade/tasks/:taskId/orders
+
+Returns task-scoped order history. Supports `limit` and `cursor`.
+
+### POST /api/auto-trade/tasks/:taskId/share
+### GET /api/auto-trade/shares/:code
+### POST /api/auto-trade/shares/:code/import
+
+Creates, reads, or imports a task configuration share. Share import supports BTC/ETH 15m Tail and always creates a paused task. Share creation/import requires `auto_trade:manage`; authenticated share reads require `auto_trade:read`.
+
+### GET /api/auto-trade/preferences
+### PATCH /api/auto-trade/preferences
+
+Reads or updates:
+
+```json
+{
+  "emailAutoTradeSettlementEnabled": true,
+  "telegramAutoTradeSettlementEnabled": true
+}
+```
+
+All state-changing endpoints require an `Idempotency-Key` header of at most 200 characters. Reusing a key with the same operation and body returns the original response with `Idempotency-Replayed: true`; reusing it with a different body returns `409`.
+
+Service-wide enablement, shadow-run configuration, and operations controls are intentionally not exposed to API keys.
 
 ---
 

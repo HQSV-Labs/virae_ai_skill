@@ -240,22 +240,79 @@ Notes:
 
 ---
 
-## Checking BTC/ETH 15m Auto-Trade Status
+## Checking Auto Trade Status
 
 **User:** "show my BTC15m auto-trade status"
 
-1. `GET /api/auto-trade/btc-15m-tail/status`
-2. `GET /api/auto-trade/btc-15m-tail/tasks`
-3. `GET /api/auto-trade/btc-15m-tail/decisions?limit=20`
+1. `GET /api/auto-trade/strategies`
+2. `GET /api/auto-trade/tasks?strategyKey=btc-15m-tail`
+3. For each requested task: `GET /api/auto-trade/tasks/:taskId/decisions?limit=20`
 4. Display:
    ```
    BTC 15m Tail
-   Status: Enabled
+   Service availability: Live
    Tasks: 1 active
    Last decision: skipped - no qualifying entry
    ```
 
-If the user asks to enable, pause, resume, delete, or create a task, show the exact endpoint and body and wait for explicit confirmation. This is a persistent strategy, not a one-off market order.
+## Creating a Paused Auto Trade Task
+
+**User:** "create an ETH 15m auto-trade task with $10 per order and an $80 daily loss stop"
+
+1. Resolve the strategy with `GET /api/auto-trade/strategies`.
+2. Validate without changing state:
+   ```
+   POST /api/auto-trade/tasks/validate
+   {
+     "strategyKey": "eth-15m-tail",
+     "perOrderAmountUsd": 10,
+     "orderSizingMode": "FIXED_ORDER_AMOUNT",
+     "riskConfig": { "dailyLossStopUsd": 80 },
+     "startImmediately": false
+   }
+   ```
+3. Show the exact normalized response and state clearly that the task will be created paused.
+4. Wait for explicit confirmation.
+5. Create using a new idempotency key:
+   ```
+   POST /api/auto-trade/tasks
+   Idempotency-Key: create-eth-tail-<unique-value>
+   {
+     "strategyKey": "eth-15m-tail",
+     "perOrderAmountUsd": 10,
+     "orderSizingMode": "FIXED_ORDER_AMOUNT",
+     "riskConfig": { "dailyLossStopUsd": 80 },
+     "startImmediately": false
+   }
+   ```
+6. Report the task id and paused state. Do not resume it unless the user separately asks.
+
+## Updating and Activating an Auto Trade Task
+
+**User:** "change task 42 to $8 per order and then start it"
+
+1. Read task 42 and confirm it belongs to the current user.
+2. Validate the intended configuration by merging the current task with the patch and calling `/api/auto-trade/tasks/validate`.
+3. Show the exact normalized change and the separate live-activation action. Wait for confirmation.
+4. Patch using `Idempotency-Key: update-task-42-<unique-value>`.
+5. Resume using a different key, `Idempotency-Key: resume-task-42-<unique-value>`.
+6. If resume returns a missing scope, geographic restriction, or service-disabled error, report it and leave the task paused. Never try to bypass the restriction.
+
+## Pausing or Deleting an Auto Trade Task
+
+An explicit request such as "pause task 42 now" authorizes:
+```
+POST /api/auto-trade/tasks/42/pause
+Idempotency-Key: pause-task-42-<unique-value>
+```
+
+For deletion, first display the task identity and explain that the task will be archived/stopped, then wait for explicit confirmation:
+```
+DELETE /api/auto-trade/tasks/42
+Idempotency-Key: delete-task-42-<unique-value>
+```
+
+This is a persistent strategy system, not a one-off market order. Never change global controls or shadow-run settings.
 
 ---
 

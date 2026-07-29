@@ -12,7 +12,8 @@ This skill connects to the [Virae](https://www.virae.ai) API and works with **Cl
 - **Trade recurring crypto rounds** — "buy BTC 5m up", optionally with `tp/sl`
 - **Cancel orders** — list and cancel unfilled limit orders
 - **Claim payouts** — redeem resolved market winnings
-- **Check product status** — rewards, favorites, copy trading, Predict.fun, memecoin, and BTC/ETH 15m auto-trade status
+- **Manage Auto Trade** — create paused tasks, validate/change parameters, inspect simulations/records/PnL, pause, resume, delete, and set settlement notifications
+- **Check product status** — rewards, favorites, copy trading, Predict.fun, and memecoin
 
 ## Prerequisites
 
@@ -28,6 +29,9 @@ Common scopes:
 - `trade:polymarket`
 - `trade:predict`
 - `trade:memecoin`
+- `auto_trade:read`
+- `auto_trade:manage`
+- `auto_trade:activate` (live activation; also requires `trade:polymarket`)
 
 Set it as an environment variable:
 
@@ -82,13 +86,16 @@ Once installed, just talk to your agent naturally:
 "what's my PnL?"
 "show my rewards"
 "check BTC15m auto-trade status"
+"create a paused ETH 15m auto-trade task with $10 per order"
+"show task 42 decisions and PnL"
+"resume auto-trade task 42"
 ```
 
 The agent will call the Virae API and handle everything allowed by the skill, including confirming trades before executing them.
 
 For recurring crypto BUY orders on Polymarket, the agent may attach a recurring `strategyContext` with optional TP/SL risk config so the trade is tracked as a recurring crypto strategy entry.
 
-BTC/ETH 15m auto-trade is a persistent strategy system. The skill supports read-only status checks by default. Creating, changing, enabling, pausing, resuming, or deleting strategy tasks requires explicit confirmation of the exact action.
+Auto Trade is a persistent strategy system. The skill can manage BTC/ETH 15m Tail and Musk Tweet Count tasks through the unified API. It validates and displays the exact normalized parameters before state-changing operations, creates tasks paused by default, and requires separate activation permissions plus explicit confirmation before live activation.
 
 ## API
 

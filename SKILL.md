@@ -1,6 +1,6 @@
 ---
 name: predictdog
-description: "Use the Virae API to search markets, view account/portfolio/PnL, place confirmed Polymarket trades including recurring crypto TP/SL entries, inspect or cancel open orders, claim resolved payouts, and read supported product surfaces such as rewards, favorites, Predict.fun, memecoin, copy-trading, and BTC/ETH 15m auto-trade status. Use when the user wants to interact with virae.ai from an AI agent, including requests like 'find BTC markets', 'buy $10 Yes', 'buy BTC 5m up tp 65 sl 35', 'show my portfolio', 'claim winnings', or 'check auto-trade status'. Requires PREDICTDOG_API_KEY configured or provided by the user."
+description: "Use the Virae API to search markets, view account/portfolio/PnL, place confirmed trades, and safely manage persistent Auto Trade tasks: discover strategies, validate parameters, create paused tasks, inspect tasks/decisions/audit/PnL/simulations, update parameters, pause, resume, delete, and configure notifications. Use when the user wants to interact with virae.ai from an AI agent. Requires PREDICTDOG_API_KEY configured or provided by the user."
 ---
 
 # Virae Skill
@@ -34,6 +34,9 @@ API keys can be scoped. If an endpoint returns `403` with `API key missing requi
 - `trade:polymarket` - Polymarket order, readiness, cancel, fee quote, claim
 - `trade:predict` - Predict.fun trading endpoints
 - `trade:memecoin` - memecoin trading endpoints
+- `auto_trade:read` - strategies, tasks, decisions, audit history, PnL, simulations, and preferences
+- `auto_trade:manage` - validate/create/update/pause/delete tasks and update Auto Trade preferences
+- `auto_trade:activate` - start a task immediately or resume a paused task; also requires `trade:polymarket`
 
 ## New User / Not Set Up
 
@@ -154,21 +157,48 @@ Example `strategyContext`:
 
 For user-facing Polymarket summaries, present share prices in cents (`¢`) rather than `$0.xx`.
 
-### 4b. BTC/ETH 15m Auto-Trade Status
+### 4b. Auto Trade
 
-BTC/ETH 15m Tail is a long-running auto-trade task system, not a single order. Do not create, update, pause, resume, delete, enable, or disable auto-trade tasks unless the user explicitly asks for that exact action and confirms the final request body.
+Auto Trade tasks are persistent strategies, not one-off orders. Use the unified API rather than strategy-specific legacy mutation routes.
 
-Safe read-only status endpoints:
+Read operations (`auto_trade:read`):
 ```
-GET /api/auto-trade/btc-15m-tail/status
-GET /api/auto-trade/btc-15m-tail/tasks
-GET /api/auto-trade/btc-15m-tail/decisions?limit=50
-GET /api/auto-trade/eth-15m-tail/status
-GET /api/auto-trade/eth-15m-tail/tasks
-GET /api/auto-trade/eth-15m-tail/decisions?limit=50
+GET /api/auto-trade/strategies
+GET /api/auto-trade/strategies/:strategyKey/simulation
+GET /api/auto-trade/tasks?strategyKey=&limit=&cursor=&includeArchived=
+GET /api/auto-trade/tasks/:taskId
+GET /api/auto-trade/tasks/:taskId/decisions?limit=&cursor=&reasonCode=
+GET /api/auto-trade/tasks/:taskId/audit-log?limit=&cursor=
+GET /api/auto-trade/tasks/:taskId/pnl
+GET /api/auto-trade/tasks/:taskId/orders?limit=&cursor=
+GET /api/auto-trade/shares/:code
+GET /api/auto-trade/preferences
 ```
 
-When the user asks to "turn on auto trading", "create a BTC15m bot", or similar, explain that this is a persistent strategy task and ask for explicit confirmation before calling any POST/PATCH task or settings endpoint.
+Mutation operations:
+```
+POST   /api/auto-trade/tasks/validate
+POST   /api/auto-trade/tasks
+PATCH  /api/auto-trade/tasks/:taskId
+POST   /api/auto-trade/tasks/:taskId/pause
+POST   /api/auto-trade/tasks/:taskId/resume
+DELETE /api/auto-trade/tasks/:taskId
+POST   /api/auto-trade/tasks/:taskId/share
+POST   /api/auto-trade/shares/:code/import
+PATCH  /api/auto-trade/preferences
+```
+
+Rules:
+
+1. Discover the strategy and validate the intended body first.
+2. Show the user the exact normalized configuration returned by validation, including amount, entry/risk parameters, strategy, and whether it starts immediately.
+3. Wait for explicit confirmation before create, update, resume, delete, or preference changes. Pause may proceed only when the user explicitly requested pausing that exact task.
+4. Send a new, stable `Idempotency-Key` header on every state-changing call. Reuse it only when retrying the exact same operation and body.
+5. Creation defaults to `startImmediately: false`. Prefer creating paused, then resume only after a separate explicit activation confirmation.
+6. Creating with `startImmediately: true` or resuming requires `auto_trade:activate` and `trade:polymarket`, and may be rejected by geographic or service-level live-trading controls.
+7. Never use this skill to change service-wide/global controls, shadow-run configuration, or another user's task.
+
+Supported live task strategy keys are `btc-15m-tail`, `eth-15m-tail`, and `musk-tweet-count`. `weather-temperature` may be listed as simulation-only and cannot create a live task.
 
 ### 5. Cancel an Order
 ```
