@@ -2,7 +2,7 @@
 
 Trade on Virae, view portfolio/PnL, and inspect supported product surfaces from your AI agent.
 
-This skill connects to the [Virae](https://www.virae.ai) API and works with **Claude Code** and **OpenClaw**.
+This skill connects to the [Virae](https://www.virae.ai) API and works with **Claude Code**, **OpenClaw**, **Gemini CLI**, **GitHub Copilot**, and **Codex**.
 
 ## What You Can Do
 
@@ -63,13 +63,45 @@ git clone https://github.com/HQSV-Labs/virae_ai_skill.git ~/.claude/skills/virae
 ### OpenClaw
 
 ```bash
+openclaw skills install git:HQSV-Labs/virae_ai_skill --global
+```
+
+Or clone it into OpenClaw's shared managed skills directory:
+
+```bash
 git clone https://github.com/HQSV-Labs/virae_ai_skill.git ~/.openclaw/skills/virae-ai-skill
 ```
 
-Or via the OpenClaw CLI (if available):
+### Gemini CLI
 
 ```bash
-openclaw skills install git:HQSV-Labs/virae_ai_skill --global
+gemini skills install https://github.com/HQSV-Labs/virae_ai_skill
+```
+
+Or clone it into Gemini's user skills directory:
+
+```bash
+git clone https://github.com/HQSV-Labs/virae_ai_skill.git ~/.gemini/skills/virae-ai-skill
+```
+
+### GitHub Copilot
+
+Install it for all local projects:
+
+```bash
+git clone https://github.com/HQSV-Labs/virae_ai_skill.git ~/.copilot/skills/virae-ai-skill
+```
+
+For one repository only, clone it into that repository instead:
+
+```bash
+git clone https://github.com/HQSV-Labs/virae_ai_skill.git .github/skills/virae-ai-skill
+```
+
+### Codex
+
+```bash
+git clone https://github.com/HQSV-Labs/virae_ai_skill.git ~/.agents/skills/virae-ai-skill
 ```
 
 ## Usage

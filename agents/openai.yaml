@@ -1,0 +1,4 @@
+interface:
+  display_name: "Virae AI Skill"
+  short_description: "Trade prediction markets and manage Virae Auto Trade"
+  default_prompt: "Use $virae-ai-skill to search markets, review my portfolio, or safely manage an Auto Trade task."
