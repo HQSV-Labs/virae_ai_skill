@@ -47,29 +47,29 @@ Or just tell your agent the key when it asks.
 
 ```bash
 # Download and install
-curl -L https://github.com/HQSV-Labs/virae_ai_skill/releases/latest/download/predictdog-skill.skill \
-  -o predictdog-skill.skill
+curl -L https://github.com/HQSV-Labs/virae_ai_skill/releases/latest/download/virae-ai-skill.skill \
+  -o virae-ai-skill.skill
 
 # Unzip into Claude skills directory
-unzip predictdog-skill.skill -d ~/.claude/skills/
+unzip virae-ai-skill.skill -d ~/.claude/skills/
 ```
 
 Or clone and install manually:
 
 ```bash
-git clone git@github.com:HQSV-Labs/virae_ai_skill.git ~/.claude/skills/predictdog-skill
+git clone https://github.com/HQSV-Labs/virae_ai_skill.git ~/.claude/skills/virae-ai-skill
 ```
 
 ### OpenClaw
 
 ```bash
-git clone git@github.com:HQSV-Labs/virae_ai_skill.git ~/.openclaw/skills/predictdog-skill
+git clone https://github.com/HQSV-Labs/virae_ai_skill.git ~/.openclaw/skills/virae-ai-skill
 ```
 
 Or via the OpenClaw CLI (if available):
 
 ```bash
-openclaw skills install github:HQSV-Labs/virae_ai_skill
+openclaw skills install git:HQSV-Labs/virae_ai_skill --global
 ```
 
 ## Usage

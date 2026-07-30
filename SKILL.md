@@ -1,5 +1,5 @@
 ---
-name: predictdog
+name: virae-ai-skill
 description: "Use the Virae API to search markets, view account/portfolio/PnL, place confirmed trades, and safely manage persistent Auto Trade tasks: discover strategies, validate parameters, create paused tasks, inspect tasks/decisions/audit/PnL/simulations, update parameters, pause, resume, delete, and configure notifications. Use when the user wants to interact with virae.ai from an AI agent. Requires PREDICTDOG_API_KEY configured or provided by the user."
 ---
 
