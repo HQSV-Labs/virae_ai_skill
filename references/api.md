@@ -1,6 +1,6 @@
 # Virae API Reference
 
-Base URL: `https://api.predictdog.xyz`
+Base URL: `https://api.virae.ai`
 Auth header: `x-api-key: $PREDICTDOG_API_KEY` or `Authorization: Bearer $PREDICTDOG_API_KEY`
 
 ---

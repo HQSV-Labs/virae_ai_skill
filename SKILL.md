@@ -15,7 +15,7 @@ One value is required before any API call:
 Check for this as an environment variable first. If not found, ask the user:
 > "Please provide your Virae API key. You can generate one at virae.ai → Settings → API Keys."
 
-**Base URL is fixed:** `https://api.predictdog.xyz` — do not ask the user for this.
+**Base URL is fixed:** `https://api.virae.ai` — do not ask the user for this.
 
 ## Authentication
 

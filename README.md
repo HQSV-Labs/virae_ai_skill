@@ -47,7 +47,7 @@ Or just tell your agent the key when it asks.
 
 ```bash
 # Download and install
-curl -L https://github.com/HQSV-Labs/predictdog_skill/releases/latest/download/predictdog-skill.skill \
+curl -L https://github.com/HQSV-Labs/virae_ai_skill/releases/latest/download/predictdog-skill.skill \
   -o predictdog-skill.skill
 
 # Unzip into Claude skills directory
@@ -57,19 +57,19 @@ unzip predictdog-skill.skill -d ~/.claude/skills/
 Or clone and install manually:
 
 ```bash
-git clone git@github.com:HQSV-Labs/predictdog_skill.git ~/.claude/skills/predictdog-skill
+git clone git@github.com:HQSV-Labs/virae_ai_skill.git ~/.claude/skills/predictdog-skill
 ```
 
 ### OpenClaw
 
 ```bash
-git clone git@github.com:HQSV-Labs/predictdog_skill.git ~/.openclaw/skills/predictdog-skill
+git clone git@github.com:HQSV-Labs/virae_ai_skill.git ~/.openclaw/skills/predictdog-skill
 ```
 
 Or via the OpenClaw CLI (if available):
 
 ```bash
-openclaw skills install github:HQSV-Labs/predictdog_skill
+openclaw skills install github:HQSV-Labs/virae_ai_skill
 ```
 
 ## Usage
@@ -99,7 +99,7 @@ Auto Trade is a persistent strategy system. The skill can manage BTC/ETH 15m Tai
 
 ## API
 
-This skill uses the Virae REST API at `https://api.predictdog.xyz`. See [`references/api.md`](references/api.md) for the full endpoint reference.
+This skill uses the Virae REST API at `https://api.virae.ai`. See [`references/api.md`](references/api.md) for the full endpoint reference.
 
 Deposits and withdrawals are intentionally disabled in this skill — use [virae.ai](https://www.virae.ai) for fund management.
 
