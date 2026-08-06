@@ -36,7 +36,7 @@ Common scopes:
 Set it as an environment variable:
 
 ```bash
-export PREDICTDOG_API_KEY=pd_pat_your_key_here
+export VIRAE_API_KEY=pd_pat_your_key_here
 ```
 
 Or just tell your agent the key when it asks.

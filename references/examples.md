@@ -12,7 +12,7 @@ To get started with Virae:
 1. Visit virae.ai to create an account
 2. Deposit USDC into your wallet (Wallet → Deposit)
 3. Go to Settings → API Keys to generate your API key
-4. Set PREDICTDOG_API_KEY in your environment
+4. Set VIRAE_API_KEY in your environment
 
 Once set up, you can search markets, view your portfolio, and trade — all from here.
 ```

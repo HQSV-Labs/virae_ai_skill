@@ -1,6 +1,6 @@
 ---
 name: virae-ai-skill
-description: "Use the Virae API to search markets, view account/portfolio/PnL, place confirmed trades, and safely manage persistent Auto Trade tasks: discover strategies, validate parameters, create paused tasks, inspect tasks/decisions/audit/PnL/simulations, update parameters, pause, resume, delete, and configure notifications. Use when the user wants to interact with virae.ai from an AI agent. Requires PREDICTDOG_API_KEY configured or provided by the user."
+description: "Use the Virae API to search markets, view account/portfolio/PnL, place confirmed trades, and safely manage persistent Auto Trade tasks: discover strategies, validate parameters, create paused tasks, inspect tasks/decisions/audit/PnL/simulations, update parameters, pause, resume, delete, and configure notifications. Use when the user wants to interact with virae.ai from an AI agent. Requires VIRAE_API_KEY configured or provided by the user."
 ---
 
 # Virae Skill
@@ -10,7 +10,7 @@ Trade prediction markets and manage Virae account state via the Virae API.
 ## Setup
 
 One value is required before any API call:
-- `PREDICTDOG_API_KEY` — user's API key
+- `VIRAE_API_KEY` — user's API key
 
 Check for this as an environment variable first. If not found, ask the user:
 > "Please provide your Virae API key. You can generate one at virae.ai → Settings → API Keys."
@@ -21,11 +21,11 @@ Check for this as an environment variable first. If not found, ask the user:
 
 All requests require one of these auth forms:
 ```
-x-api-key: <PREDICTDOG_API_KEY>
+x-api-key: <VIRAE_API_KEY>
 ```
 or
 ```
-Authorization: Bearer <PREDICTDOG_API_KEY>
+Authorization: Bearer <VIRAE_API_KEY>
 ```
 
 API keys can be scoped. If an endpoint returns `403` with `API key missing required scope: ...`, tell the user which scope is missing and ask them to create or use a key with that scope:
